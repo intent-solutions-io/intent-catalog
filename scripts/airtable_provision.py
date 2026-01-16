@@ -2,11 +2,18 @@
 """
 Airtable Schema Provisioner
 
-Creates/updates Airtable tables and fields based on airtable.base.json.
-Outputs mappings/airtable_ids.json with table and field IDs.
+Creates/updates Airtable tables and fields based on a schema file.
+Outputs mappings file with table and field IDs.
 
 Usage:
-    python airtable_provision.py [--dry-run] [--base-id BASE_ID]
+    python airtable_provision.py [--schema FILE] [--output FILE] [--dry-run] [--base-id BASE_ID]
+
+Examples:
+    # Product Catalog (default)
+    python airtable_provision.py --base-id appXXX
+
+    # Operations Hub
+    python airtable_provision.py --schema schema/operations-hub.base.json --output mappings/ops-hub-ids.json --base-id appYYY
 
 Environment:
     AIRTABLE_TOKEN: Personal access token with schema:write scope
@@ -28,8 +35,8 @@ except ImportError:
     sys.exit(1)
 
 
-SCHEMA_PATH = Path(__file__).parent.parent / "schema" / "airtable.base.json"
-MAPPINGS_PATH = Path(__file__).parent.parent / "mappings" / "airtable_ids.json"
+DEFAULT_SCHEMA_PATH = Path(__file__).parent.parent / "schema" / "airtable.base.json"
+DEFAULT_MAPPINGS_PATH = Path(__file__).parent.parent / "mappings" / "airtable_ids.json"
 
 AIRTABLE_API_BASE = "https://api.airtable.com/v0"
 
@@ -295,6 +302,18 @@ def main():
         "--base-id",
         help="Airtable base ID (overrides AIRTABLE_BASE_ID env var)",
     )
+    parser.add_argument(
+        "--schema",
+        type=Path,
+        default=DEFAULT_SCHEMA_PATH,
+        help=f"Schema file path (default: {DEFAULT_SCHEMA_PATH})",
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=None,
+        help="Output mappings file (default: auto-derived from schema name)",
+    )
     args = parser.parse_args()
 
     # Get credentials
@@ -308,16 +327,29 @@ def main():
         print("Error: AIRTABLE_BASE_ID not set (use --base-id or env var)")
         return 1
 
+    # Determine paths
+    schema_path = args.schema
+    if args.output:
+        mappings_path = args.output
+    else:
+        # Derive from schema name: operations-hub.base.json -> ops-hub-ids.json
+        schema_name = schema_path.stem.replace(".base", "")
+        if schema_name == "airtable":
+            mappings_path = DEFAULT_MAPPINGS_PATH
+        else:
+            mappings_path = schema_path.parent.parent / "mappings" / f"{schema_name}-ids.json"
+
     # Load schema
-    if not SCHEMA_PATH.exists():
-        print(f"Error: Schema not found: {SCHEMA_PATH}")
+    if not schema_path.exists():
+        print(f"Error: Schema not found: {schema_path}")
         return 1
 
-    with open(SCHEMA_PATH) as f:
+    with open(schema_path) as f:
         schema = json.load(f)
 
     print(f"Provisioning Airtable base: {base_id}")
-    print(f"Schema version: {schema.get('version', 'unknown')}")
+    print(f"Schema: {schema_path.name} (v{schema.get('version', 'unknown')})")
+    print(f"Output: {mappings_path}")
     print(f"Tables to provision: {', '.join(schema['tables'].keys())}")
     if args.dry_run:
         print("DRY RUN MODE - no changes will be made\n")
@@ -334,12 +366,12 @@ def main():
 
     # Save mappings
     if not args.dry_run:
-        MAPPINGS_PATH.parent.mkdir(parents=True, exist_ok=True)
-        with open(MAPPINGS_PATH, "w") as f:
+        mappings_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(mappings_path, "w") as f:
             json.dump(mappings, f, indent=2, sort_keys=True)
-        print(f"\nMappings saved to {MAPPINGS_PATH}")
+        print(f"\nMappings saved to {mappings_path}")
     else:
-        print(f"\n[DRY RUN] Would save mappings to {MAPPINGS_PATH}")
+        print(f"\n[DRY RUN] Would save mappings to {mappings_path}")
         print(json.dumps(mappings, indent=2, sort_keys=True))
 
     print("\nProvisioning complete!")

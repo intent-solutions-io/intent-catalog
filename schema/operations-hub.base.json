@@ -1,0 +1,563 @@
+{
+  "$schema": "https://intentsolutions.io/schemas/airtable.base.schema.json",
+  "name": "Operations Hub",
+  "description": "CRM, sales pipeline, projects, and legal tracking for Intent Solutions",
+  "version": "1.0.0",
+  "tables": {
+    "Companies": {
+      "description": "All companies - canonical entity for CRM",
+      "primaryField": "name",
+      "fields": {
+        "name": {
+          "type": "singleLineText",
+          "description": "Company name (unique)",
+          "source": "manual"
+        },
+        "website": {
+          "type": "url",
+          "description": "Company website",
+          "source": "manual"
+        },
+        "industry": {
+          "type": "singleSelect",
+          "description": "Industry sector",
+          "source": "manual",
+          "options": ["AI/ML", "Crypto/Web3", "SaaS", "Legal", "Consulting", "Finance", "Healthcare", "Other"]
+        },
+        "stage": {
+          "type": "singleSelect",
+          "description": "Sales pipeline stage",
+          "source": "manual",
+          "options": ["Lead", "Qualified", "Proposal", "Negotiation", "Won", "Lost", "Churned"]
+        },
+        "source": {
+          "type": "singleSelect",
+          "description": "How we found them",
+          "source": "manual",
+          "options": ["Referral", "Outbound", "Inbound", "Conference", "Social", "Other"]
+        },
+        "funding": {
+          "type": "number",
+          "description": "Total funding raised ($)",
+          "source": "manual",
+          "precision": 0
+        },
+        "employees": {
+          "type": "singleSelect",
+          "description": "Company size",
+          "source": "manual",
+          "options": ["1-10", "11-50", "51-200", "201-500", "500+"]
+        },
+        "notes": {
+          "type": "multilineText",
+          "description": "General notes",
+          "source": "manual"
+        },
+        "priority": {
+          "type": "singleSelect",
+          "description": "Priority level",
+          "source": "manual",
+          "options": ["Hot", "Warm", "Cold", "On Hold"]
+        },
+        "last_contact": {
+          "type": "dateTime",
+          "description": "Last interaction date",
+          "source": "manual"
+        },
+        "created_at": {
+          "type": "dateTime",
+          "description": "Record creation date",
+          "source": "sync"
+        }
+      }
+    },
+    "Contacts": {
+      "description": "People at companies",
+      "primaryField": "name",
+      "fields": {
+        "name": {
+          "type": "singleLineText",
+          "description": "Full name",
+          "source": "manual"
+        },
+        "email": {
+          "type": "singleLineText",
+          "description": "Primary email",
+          "source": "manual"
+        },
+        "title": {
+          "type": "singleLineText",
+          "description": "Job title",
+          "source": "manual"
+        },
+        "company": {
+          "type": "multipleRecordLinks",
+          "description": "Company they work at",
+          "source": "manual",
+          "linkedTable": "Companies"
+        },
+        "linkedin": {
+          "type": "url",
+          "description": "LinkedIn profile",
+          "source": "manual"
+        },
+        "phone": {
+          "type": "singleLineText",
+          "description": "Phone number",
+          "source": "manual"
+        },
+        "role": {
+          "type": "singleSelect",
+          "description": "Role type",
+          "source": "manual",
+          "options": ["Decision Maker", "Champion", "Influencer", "Blocker", "End User", "Technical"]
+        },
+        "notes": {
+          "type": "multilineText",
+          "description": "Notes about this person",
+          "source": "manual"
+        },
+        "last_contact": {
+          "type": "dateTime",
+          "description": "Last interaction",
+          "source": "manual"
+        }
+      }
+    },
+    "Meetings": {
+      "description": "Meeting log",
+      "primaryField": "title",
+      "fields": {
+        "title": {
+          "type": "singleLineText",
+          "description": "Meeting title",
+          "source": "manual"
+        },
+        "company": {
+          "type": "multipleRecordLinks",
+          "description": "Company",
+          "source": "manual",
+          "linkedTable": "Companies"
+        },
+        "contacts": {
+          "type": "multipleRecordLinks",
+          "description": "Attendees",
+          "source": "manual",
+          "linkedTable": "Contacts"
+        },
+        "date": {
+          "type": "dateTime",
+          "description": "Meeting date/time",
+          "source": "manual"
+        },
+        "type": {
+          "type": "singleSelect",
+          "description": "Meeting type",
+          "source": "manual",
+          "options": ["Call", "Video", "In-Person", "Email Thread", "Async"]
+        },
+        "notes": {
+          "type": "multilineText",
+          "description": "Meeting notes",
+          "source": "manual"
+        },
+        "action_items": {
+          "type": "multilineText",
+          "description": "Action items from meeting",
+          "source": "manual"
+        },
+        "followup_date": {
+          "type": "dateTime",
+          "description": "When to follow up",
+          "source": "manual"
+        },
+        "outcome": {
+          "type": "singleSelect",
+          "description": "Meeting outcome",
+          "source": "manual",
+          "options": ["Positive", "Neutral", "Negative", "No Show", "Rescheduled"]
+        }
+      }
+    },
+    "Deals": {
+      "description": "Sales opportunities",
+      "primaryField": "name",
+      "fields": {
+        "name": {
+          "type": "singleLineText",
+          "description": "Deal name",
+          "source": "manual"
+        },
+        "company": {
+          "type": "multipleRecordLinks",
+          "description": "Company",
+          "source": "manual",
+          "linkedTable": "Companies"
+        },
+        "value": {
+          "type": "number",
+          "description": "Deal value ($)",
+          "source": "manual",
+          "precision": 0
+        },
+        "stage": {
+          "type": "singleSelect",
+          "description": "Deal stage",
+          "source": "manual",
+          "options": ["Discovery", "Qualified", "Proposal", "Negotiation", "Closed Won", "Closed Lost"]
+        },
+        "probability": {
+          "type": "number",
+          "description": "Win probability (%)",
+          "source": "manual",
+          "precision": 0
+        },
+        "category": {
+          "type": "singleSelect",
+          "description": "Deal category",
+          "source": "manual",
+          "options": ["AI Agent", "Intent Protocol", "Custody", "Consulting", "Plugin Development", "Other"]
+        },
+        "close_date": {
+          "type": "dateTime",
+          "description": "Expected close date",
+          "source": "manual"
+        },
+        "notes": {
+          "type": "multilineText",
+          "description": "Deal notes",
+          "source": "manual"
+        },
+        "created_at": {
+          "type": "dateTime",
+          "description": "Deal created",
+          "source": "manual"
+        }
+      }
+    },
+    "Tasks": {
+      "description": "Follow-ups and to-dos",
+      "primaryField": "task",
+      "fields": {
+        "task": {
+          "type": "singleLineText",
+          "description": "Task description",
+          "source": "manual"
+        },
+        "company": {
+          "type": "multipleRecordLinks",
+          "description": "Related company",
+          "source": "manual",
+          "linkedTable": "Companies"
+        },
+        "contact": {
+          "type": "multipleRecordLinks",
+          "description": "Related contact",
+          "source": "manual",
+          "linkedTable": "Contacts"
+        },
+        "deal": {
+          "type": "multipleRecordLinks",
+          "description": "Related deal",
+          "source": "manual",
+          "linkedTable": "Deals"
+        },
+        "due_date": {
+          "type": "dateTime",
+          "description": "Due date",
+          "source": "manual"
+        },
+        "priority": {
+          "type": "singleSelect",
+          "description": "Priority",
+          "source": "manual",
+          "options": ["High", "Medium", "Low"]
+        },
+        "status": {
+          "type": "singleSelect",
+          "description": "Status",
+          "source": "manual",
+          "options": ["Pending", "In Progress", "Done", "Cancelled"]
+        },
+        "assigned_to": {
+          "type": "singleSelect",
+          "description": "Assigned to",
+          "source": "manual",
+          "options": ["Jeremy", "Pablo", "Unassigned"]
+        },
+        "notes": {
+          "type": "multilineText",
+          "description": "Additional notes",
+          "source": "manual"
+        }
+      }
+    },
+    "Outreach": {
+      "description": "Sales outreach log",
+      "primaryField": "subject",
+      "fields": {
+        "subject": {
+          "type": "singleLineText",
+          "description": "Outreach subject",
+          "source": "manual"
+        },
+        "company": {
+          "type": "multipleRecordLinks",
+          "description": "Company",
+          "source": "manual",
+          "linkedTable": "Companies"
+        },
+        "contact": {
+          "type": "multipleRecordLinks",
+          "description": "Contact",
+          "source": "manual",
+          "linkedTable": "Contacts"
+        },
+        "date": {
+          "type": "dateTime",
+          "description": "Outreach date",
+          "source": "manual"
+        },
+        "channel": {
+          "type": "singleSelect",
+          "description": "Channel used",
+          "source": "manual",
+          "options": ["Email", "LinkedIn", "Twitter/X", "Call", "Conference", "Referral"]
+        },
+        "direction": {
+          "type": "singleSelect",
+          "description": "Direction",
+          "source": "manual",
+          "options": ["Outbound", "Inbound"]
+        },
+        "outcome": {
+          "type": "singleSelect",
+          "description": "Outcome",
+          "source": "manual",
+          "options": ["No Response", "Replied", "Meeting Booked", "Not Interested", "Bounced"]
+        },
+        "notes": {
+          "type": "multilineText",
+          "description": "Notes",
+          "source": "manual"
+        }
+      }
+    },
+    "Bounties": {
+      "description": "Open source bounties",
+      "primaryField": "task",
+      "fields": {
+        "task": {
+          "type": "singleLineText",
+          "description": "Bounty task description",
+          "source": "repo"
+        },
+        "repo": {
+          "type": "singleLineText",
+          "description": "Repository",
+          "source": "repo"
+        },
+        "issue_url": {
+          "type": "url",
+          "description": "Issue URL",
+          "source": "repo"
+        },
+        "bounty_amount": {
+          "type": "number",
+          "description": "Bounty amount ($)",
+          "source": "repo",
+          "precision": 0
+        },
+        "status": {
+          "type": "singleSelect",
+          "description": "Bounty status",
+          "source": "repo",
+          "options": ["Open", "In Progress", "Submitted", "Paid", "Declined", "Expired"]
+        },
+        "pr_url": {
+          "type": "url",
+          "description": "Pull request URL",
+          "source": "repo"
+        },
+        "submitted_date": {
+          "type": "dateTime",
+          "description": "Date submitted",
+          "source": "repo"
+        },
+        "paid_date": {
+          "type": "dateTime",
+          "description": "Date paid",
+          "source": "repo"
+        },
+        "notes": {
+          "type": "multilineText",
+          "description": "Notes",
+          "source": "manual"
+        }
+      }
+    },
+    "Payments": {
+      "description": "Payment tracking",
+      "primaryField": "description",
+      "fields": {
+        "description": {
+          "type": "singleLineText",
+          "description": "Payment description",
+          "source": "manual"
+        },
+        "type": {
+          "type": "singleSelect",
+          "description": "Payment type",
+          "source": "manual",
+          "options": ["Bounty", "Client", "Consulting", "Subscription", "Refund", "Other"]
+        },
+        "amount": {
+          "type": "number",
+          "description": "Amount ($)",
+          "source": "manual",
+          "precision": 2
+        },
+        "direction": {
+          "type": "singleSelect",
+          "description": "Money direction",
+          "source": "manual",
+          "options": ["Incoming", "Outgoing"]
+        },
+        "status": {
+          "type": "singleSelect",
+          "description": "Payment status",
+          "source": "manual",
+          "options": ["Pending", "Invoiced", "Paid", "Failed", "Refunded"]
+        },
+        "date": {
+          "type": "dateTime",
+          "description": "Payment date",
+          "source": "manual"
+        },
+        "company": {
+          "type": "multipleRecordLinks",
+          "description": "Related company",
+          "source": "manual",
+          "linkedTable": "Companies"
+        },
+        "bounty": {
+          "type": "multipleRecordLinks",
+          "description": "Related bounty",
+          "source": "manual",
+          "linkedTable": "Bounties"
+        },
+        "invoice_url": {
+          "type": "url",
+          "description": "Invoice link",
+          "source": "manual"
+        },
+        "notes": {
+          "type": "multilineText",
+          "description": "Notes",
+          "source": "manual"
+        }
+      }
+    },
+    "LawFirms": {
+      "description": "Law firms for Nixtla case",
+      "primaryField": "firm",
+      "fields": {
+        "firm": {
+          "type": "singleLineText",
+          "description": "Firm name",
+          "source": "manual"
+        },
+        "website": {
+          "type": "url",
+          "description": "Firm website",
+          "source": "manual"
+        },
+        "tier": {
+          "type": "singleSelect",
+          "description": "Firm tier",
+          "source": "manual",
+          "options": ["Tier 1 - Giant Slayers", "Tier 2 - Worker Protection", "Tier 3 - Founder Disputes", "Class Action", "Tech IP"]
+        },
+        "specialty": {
+          "type": "singleLineText",
+          "description": "Specialty area",
+          "source": "manual"
+        },
+        "contact_name": {
+          "type": "singleLineText",
+          "description": "Key contact name",
+          "source": "manual"
+        },
+        "contact_email": {
+          "type": "singleLineText",
+          "description": "Contact email",
+          "source": "manual"
+        },
+        "phone": {
+          "type": "singleLineText",
+          "description": "Phone number",
+          "source": "manual"
+        },
+        "address": {
+          "type": "multilineText",
+          "description": "Physical address",
+          "source": "manual"
+        },
+        "status": {
+          "type": "singleSelect",
+          "description": "Engagement status",
+          "source": "manual",
+          "options": ["Research", "Contacted", "Replied", "Meeting Scheduled", "Engaged", "Declined", "Not Suitable"]
+        },
+        "notes": {
+          "type": "multilineText",
+          "description": "Notes",
+          "source": "manual"
+        }
+      }
+    },
+    "LegalTimeline": {
+      "description": "Legal case timeline",
+      "primaryField": "event",
+      "fields": {
+        "event": {
+          "type": "singleLineText",
+          "description": "Event description",
+          "source": "manual"
+        },
+        "date": {
+          "type": "dateTime",
+          "description": "Event date",
+          "source": "manual"
+        },
+        "law_firm": {
+          "type": "multipleRecordLinks",
+          "description": "Related law firm",
+          "source": "manual",
+          "linkedTable": "LawFirms"
+        },
+        "type": {
+          "type": "singleSelect",
+          "description": "Event type",
+          "source": "manual",
+          "options": ["Outreach", "Response", "Meeting", "Filing", "Decision", "Deadline", "Other"]
+        },
+        "documents": {
+          "type": "url",
+          "description": "Document link",
+          "source": "manual"
+        },
+        "notes": {
+          "type": "multilineText",
+          "description": "Details",
+          "source": "manual"
+        }
+      }
+    }
+  },
+  "fieldSources": {
+    "manual": "User-entered in Airtable",
+    "repo": "Synced from repository",
+    "sync": "Auto-populated during sync"
+  }
+}

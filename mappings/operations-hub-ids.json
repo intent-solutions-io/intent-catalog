@@ -1,0 +1,195 @@
+{
+  "base_id": "appmYMfPcb9lQ7MrF",
+  "base_name": "Operations Hub (ai projects)",
+  "tables": {
+    "Table 1": "tbl2omZip3wqdzv7Y",
+    "Bounties": "tblmEZqioueV9Pd9h",
+    "Community Contributions": "tbl77haUVk9YiDO8i",
+    "Companies": "tbl3eyriX7CbiLJIQ",
+    "Contacts": "tblOxDgOdXg3Yldx5",
+    "Prospects - AI Agents": "tblbnpvDP84vXEHQo",
+    "Prospects - Intent Protocols": "tbllZOQtKbO8YQUIG",
+    "Prospects - Custody": "tblsYcdrk9VtPbadq",
+    "Law Firms": "tblwbwyDQq0yVmf3o",
+    "Meetings": "tblDoGnXPCsozUZ1H",
+    "Follow-ups": "tblSPoTWjTWaoigXj",
+    "Payments": "tblA8HgWE4m2I6wT4",
+    "Deals": "tblFyzVTsism3R9Vc",
+    "Tasks": "tblrt5I1v3k37p6Sa",
+    "Outreach": "tblVikZ6zfAB0e0RQ",
+    "LawFirms": "tbl33F8Nt2THEbFXZ",
+    "LegalTimeline": "tblWzSYPqd0agCNTx"
+  },
+  "fields": {
+    "Table 1": {
+      "Name": "fldLhwr86VcA1JEAj",
+      "Project": "fldpDsYJWMPdWdC75",
+      "Summary": "fldb2VPibHRuoXNhd",
+      "Attachments": "fldnNy3ppIp7Bca1Q",
+      "Attachment Summary": "fldFs6x8vbgPbCrq2"
+    },
+    "Bounties": {
+      "Repo": "fldkRR6kiPuU2T21G",
+      "Issue": "fldI9miMQU9afeP2n",
+      "Task": "fld9ILUmmTRp1TCom",
+      "Bounty": "fldYYEZEGabZ6pRQE",
+      "Status": "fld2FhDCSY2oCyASB",
+      "PR": "fldSCmnxDd05zsvok",
+      "Lines": "fldV9fnusHgdw4UgE",
+      "Competition": "fldIWXjzrJYB4k3R7",
+      "Started": "fldFfwsfVgRvzP43D",
+      "Completed": "fld8z4Ufj4oewVJVQ",
+      "Notes": "fld0cXL8qAnMvJN3d"
+    },
+    "Community Contributions": {
+      "Repo": "fldwUKlx5JmGXyEOf",
+      "PR": "flditjFqzabZwtRmZ",
+      "Title": "fld2X3yBBYsOXJl7o",
+      "Type": "fldDNo51LIlkBaYg3",
+      "Status": "fldd5VDR8kdBpOqG0",
+      "Lines Added": "fldgaV0bKdjtmHMgv",
+      "Lines Deleted": "fldnoAejU3ZqZtmEU",
+      "Submitted": "fldn6r3y0otCGf4AY",
+      "Merged": "fldRY7yyHbfej7pc6",
+      "Impact": "fld3qPISUfaZ4mVbc",
+      "PR URL": "fldG10vkkAf9RQR8d",
+      "Notes": "fldYAcmORGAobQmdg"
+    },
+    "Companies": {
+      "Name": "fldppOcmMsA2OoBfB",
+      "Website": "fldOTeklO44n2WbHi",
+      "Industry": "fldxUoXhTDIdbffLw",
+      "Stage": "fldNiptE8e9XYSKll",
+      "Funding": "fldO4AE2c0yzbkyPq",
+      "Notes": "fldt3m5VQUAfTNWs0",
+      "Deals": "fldGaOfzrhA4xPJ2p",
+      "Tasks": "fldYjEGE1p73zRS19",
+      "Outreach": "fldjvAUfFFpEDLkS8"
+    },
+    "Contacts": {
+      "Name": "fldgK7rRDhQmrRjzt",
+      "Email": "fldJPNssLzbsD1uqe",
+      "Title": "fldbtcTv2ELXjs4zA",
+      "Company Name": "fldKGJMClDW3nSo31",
+      "LinkedIn": "fldb0CCb68OOLct4m",
+      "Phone": "fldJRB47ygVpTjI7U",
+      "Notes": "fld1ksSp5c2AS2VHJ",
+      "Tasks": "fldtcu7hTDwZVXRVl",
+      "Outreach": "fldvoA6jbPLfkjGkO"
+    },
+    "Prospects - AI Agents": {
+      "Company": "fldn0Yvuq8OhdVrhG",
+      "Website": "fldE2xXXTU5HDh95O",
+      "Category": "fldhCDZVUBPGyimkf",
+      "Funding": "fld51D2AQQC7THt0H",
+      "Status": "fldOMWGLfWyBXzUan",
+      "Notes": "fldZqGjGxqVKbk7BT"
+    },
+    "Prospects - Intent Protocols": {
+      "Protocol": "fldRILNpQ5ObBmuij",
+      "Website": "fldIFewPXjBEZiayg",
+      "Chain": "fldXwOb4XrUHxHZKC",
+      "TVL": "fldzys89sjRPoTF7y",
+      "Status": "fldefwPopj1JOKSa6",
+      "Notes": "fldQXOeRRaEZUcmWR"
+    },
+    "Prospects - Custody": {
+      "Company": "fldBtysCumccbFmt0",
+      "Website": "fldszw4hrSpjPSmrp",
+      "Type": "fldIkcFcVk5BFJx8y",
+      "AUM": "fldUOWKcO6a2Ca83a",
+      "Status": "fldrPSmz0G54PlwK1",
+      "Notes": "fldASo5MjZHJs24wD"
+    },
+    "Law Firms": {
+      "Firm": "fldDtYUo4rGZHHMNx",
+      "Website": "fldHJWhGqxOIksB8H",
+      "Tier": "fldpOd8leOQgfFw7n",
+      "Specialty": "fldeoqyMDiQEHJg2P",
+      "Contact": "fldj0UYzsaGIkrtT9",
+      "Phone": "fldwubcuaJT61IcP8",
+      "Address": "fld6EaCInSEd8BHEp",
+      "Status": "fldxobDBPEm5pQs4G",
+      "Notes": "fld2unVKTH4gv81GG"
+    },
+    "Meetings": {
+      "Title": "fldrA1DRXtIhM03iW",
+      "Company": "fldjg3RNDhvWl53x2",
+      "Date": "fldaDFbmcDujqZXJN",
+      "Attendees": "fld9rL537avYE863z",
+      "Type": "fldoTLt9TjxoKAgLl",
+      "Notes": "fldaSIri46JhKATjU",
+      "Action Items": "fldcEivRfnhCufKL6",
+      "Completed": "fldJoBBJHZx6V4z1K"
+    },
+    "Follow-ups": {
+      "Task": "fldK4FTck1JJfqwh3",
+      "Company": "fldCTsE8HJUUPstMp",
+      "Due Date": "fld40Y48p4382A9x2",
+      "Status": "fldBxgtKD3o3pqOuh",
+      "Notes": "fldpkvc1v6mXYwCQB"
+    },
+    "Payments": {
+      "Description": "fldT1sOdi9q4vhAvi",
+      "Source": "fldBCK7slqrz26xkf",
+      "Amount": "fld96bdFsdLm7b3Iu",
+      "Status": "fld1Kt7pfXXAxyYmA",
+      "Date": "flday6qXceZbqzVDy",
+      "Notes": "fld93v714Iye2dsCt"
+    },
+    "Deals": {
+      "name": "fldqimMmXd0HYRHzR",
+      "company": "fldBU0E7HLuf2a2Lz",
+      "value": "fld2axF6ZmjQDePrB",
+      "stage": "fldhLikeZCKQDeaqn",
+      "probability": "fld0594xxhwOMjXqY",
+      "category": "fldTi8HivDOyB4ohn",
+      "close_date": "fldMF9wceQlcIMJsm",
+      "notes": "fldAY2bQ1FfVyQOZP",
+      "created_at": "fld9QALo2B37sBL56",
+      "Tasks": "fldeTRFZcZdRBWGoC"
+    },
+    "Tasks": {
+      "task": "fldcO1lO13jcjaAnD",
+      "company": "fldw3KoOxxlIDcEm0",
+      "contact": "fldFWiiiBdYsr91Ve",
+      "deal": "fldPmIq2E2XjaqlDF",
+      "due_date": "fld7bR9lYnlmdWLHz",
+      "priority": "fldMWjVS67CpGDn7y",
+      "status": "fldHmipIUQE4K2TuB",
+      "assigned_to": "fldDlus6255IeR9MC",
+      "notes": "fldWdYUdtO8Enotmb"
+    },
+    "Outreach": {
+      "subject": "fldK0mAViehgo3JTf",
+      "company": "fld9zsSlr3a5CsJW9",
+      "contact": "fldSbhzPaOrUZ1UoP",
+      "date": "fldPeQ5NqsX8ESASF",
+      "channel": "fld4UxDEaf0ZJtEEp",
+      "direction": "fldPWWg2QLm85jVhw",
+      "outcome": "fldAxfHi0Nfy6Wy6b",
+      "notes": "fld5hlcF0jTs2z2S2"
+    },
+    "LawFirms": {
+      "firm": "fldEmyf1al58DJMhw",
+      "website": "fldFxpFWm9VSd1iRI",
+      "tier": "fldVBpNU9AhFlEIri",
+      "specialty": "fldhNBFUFovooBtbh",
+      "contact_name": "fldUDnDewQIDVZ3Pd",
+      "contact_email": "fld4HyG6y4GhGMgd1",
+      "phone": "fldqS3Za9ceA18qhu",
+      "address": "fldeqzlNq8PYJUkoe",
+      "status": "fld9bu1vJZZ9QpFbs",
+      "notes": "flda6ry9w0jRbeqEm",
+      "LegalTimeline": "fldBrFvt9FNBcPwDY"
+    },
+    "LegalTimeline": {
+      "event": "fldKhCitPVJTg1IUR",
+      "date": "fldd4hsyirpMSKqf2",
+      "law_firm": "fld1ZrItVcjDLUinQ",
+      "type": "fldX7I1prTrzNNM54",
+      "documents": "fldCetJwgVQQwsaA1",
+      "notes": "fldwWVr7Bpcm4nvU8"
+    }
+  }
+}

@@ -69,6 +69,31 @@
           "description": "GitHub URL to plugin directory",
           "source": "computed"
         },
+        "quality_score": {
+          "type": "number",
+          "description": "Documentation completeness score (0-100)",
+          "source": "computed"
+        },
+        "missing_docs": {
+          "type": "multilineText",
+          "description": "List of missing documentation types",
+          "source": "computed"
+        },
+        "has_prd": {
+          "type": "checkbox",
+          "description": "Has PRD/Spec document",
+          "source": "computed"
+        },
+        "has_adr": {
+          "type": "checkbox",
+          "description": "Has ADR/Decision document",
+          "source": "computed"
+        },
+        "has_runbook": {
+          "type": "checkbox",
+          "description": "Has runbook/operations document",
+          "source": "computed"
+        },
         "owner_notes": {
           "type": "multilineText",
           "description": "Internal notes (Airtable-only)",
@@ -179,6 +204,31 @@
         "repo_url": {
           "type": "url",
           "description": "GitHub URL to skill",
+          "source": "computed"
+        },
+        "quality_score": {
+          "type": "number",
+          "description": "Documentation completeness score (0-100)",
+          "source": "computed"
+        },
+        "missing_docs": {
+          "type": "multilineText",
+          "description": "List of missing documentation types",
+          "source": "computed"
+        },
+        "has_prd": {
+          "type": "checkbox",
+          "description": "Has PRD/Spec document",
+          "source": "computed"
+        },
+        "has_adr": {
+          "type": "checkbox",
+          "description": "Has ADR/Decision document",
+          "source": "computed"
+        },
+        "has_runbook": {
+          "type": "checkbox",
+          "description": "Has runbook/operations document",
           "source": "computed"
         },
         "owner_notes": {

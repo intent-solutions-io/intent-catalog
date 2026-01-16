@@ -76,7 +76,7 @@
         },
         "version": {
           "type": "string",
-          "pattern": "^\\d+\\.\\d+\\.\\d+$"
+          "description": "Semver if available, empty if not specified"
         },
         "path": {
           "type": "string",
@@ -132,8 +132,11 @@
           "type": "string"
         },
         "allowed_tools": {
-          "type": "string",
-          "description": "Comma-separated tool list"
+          "oneOf": [
+            { "type": "string" },
+            { "type": "array", "items": { "type": "string" } }
+          ],
+          "description": "Tool list (string or array)"
         },
         "author": {
           "type": "string"

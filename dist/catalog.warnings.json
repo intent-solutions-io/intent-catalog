@@ -1,0 +1,62 @@
+[
+  {
+    "path": "010-archive/backups-20251108/plugin-enhancements/plugin-backups/overnight-dev_20251019_115339/skills/skill-adapter/SKILL.md",
+    "message": "Missing YAML frontmatter",
+    "severity": "warning"
+  },
+  {
+    "path": "010-archive/backups-20251108/plugin-enhancements/plugin-backups/overnight-dev_20251019_115726/skills/skill-adapter/SKILL.md",
+    "message": "Missing YAML frontmatter",
+    "severity": "warning"
+  },
+  {
+    "path": "010-archive/backups-20251108/plugin-enhancements/plugin-backups/overnight-dev_20251019_120025/skills/skill-adapter/SKILL.md",
+    "message": "Missing YAML frontmatter",
+    "severity": "warning"
+  },
+  {
+    "path": "010-archive/backups-20251108/plugin-enhancements/plugin-backups/overnight-dev_20251019_125525/skills/skill-adapter/SKILL.md",
+    "message": "Missing YAML frontmatter",
+    "severity": "warning"
+  },
+  {
+    "path": "010-archive/backups-20251108/plugin-enhancements/plugin-backups/overnight-dev_20251019_232741/skills/skill-adapter/SKILL.md",
+    "message": "Missing YAML frontmatter",
+    "severity": "warning"
+  },
+  {
+    "path": "010-archive/backups-20251108/skill-structure-cleanup-20251108-073936/plugins/productivity/overnight-dev/skills/overnight-dev/SKILL.md",
+    "message": "Missing YAML frontmatter",
+    "severity": "warning"
+  },
+  {
+    "path": "backups/plugin-enhancements/plugin-backups/overnight-dev_20251019_115339/skills/skill-adapter/SKILL.md",
+    "message": "Missing YAML frontmatter",
+    "severity": "warning"
+  },
+  {
+    "path": "backups/plugin-enhancements/plugin-backups/overnight-dev_20251019_115726/skills/skill-adapter/SKILL.md",
+    "message": "Missing YAML frontmatter",
+    "severity": "warning"
+  },
+  {
+    "path": "backups/plugin-enhancements/plugin-backups/overnight-dev_20251019_120025/skills/skill-adapter/SKILL.md",
+    "message": "Missing YAML frontmatter",
+    "severity": "warning"
+  },
+  {
+    "path": "backups/plugin-enhancements/plugin-backups/overnight-dev_20251019_125525/skills/skill-adapter/SKILL.md",
+    "message": "Missing YAML frontmatter",
+    "severity": "warning"
+  },
+  {
+    "path": "backups/plugin-enhancements/plugin-backups/overnight-dev_20251019_232741/skills/skill-adapter/SKILL.md",
+    "message": "Missing YAML frontmatter",
+    "severity": "warning"
+  },
+  {
+    "path": "backups/skill-structure-cleanup-20251108-073936/plugins/productivity/overnight-dev/skills/overnight-dev/SKILL.md",
+    "message": "Missing YAML frontmatter",
+    "severity": "warning"
+  }
+]

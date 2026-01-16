@@ -1,70 +1,88 @@
-# CLAUDE.md - Intent Catalog
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
 
-**Intent Catalog** is a catalog control-plane that indexes plugins, skills, and documents across Intent Solutions repositories. It produces a deterministic `catalog.json` that serves as the source of truth before syncing to Airtable.
+Intent Catalog is a catalog control-plane that produces a deterministic `catalog.json` indexing plugins, skills, and documents across Intent Solutions repositories. The repo is the source of truth; Airtable syncs FROM this catalog.
 
-## Current Status: Phase 1 Complete
-
-Phase 1 deliverables:
-- [x] Data contract: `schema/catalog.schema.json` + `schema/catalog.contract.md`
-- [x] Extractor: `scripts/extract_catalog.py`
-- [x] Validator: `scripts/validate_catalog.py`
-- [x] CI: `.github/workflows/ci.yml`
-- [x] Docs: `README.md`, `docs/runbook.md`
-
-## Key Files
-
-| File | Purpose |
-|------|---------|
-| `schema/catalog.schema.json` | JSON Schema v1.0.0 |
-| `schema/catalog.contract.md` | Human-readable data contract |
-| `scripts/extract_catalog.py` | Deterministic extractor |
-| `scripts/validate_catalog.py` | Schema validator |
-| `Makefile` | Build commands |
-| `dist/catalog.json` | Output (gitignored) |
-
-## Quick Commands
+## Commands
 
 ```bash
-make extract   # Extract catalog from repos
-make validate  # Validate against schema
-make ci        # Full pipeline
+# Install dependencies
+pip install -r requirements.txt  # or: pip install pyyaml jsonschema
+
+# Extract catalog from repos (outputs dist/catalog.json)
+make extract
+
+# Validate catalog against JSON Schema
+make validate
+
+# Full CI pipeline
+make ci
+
+# Extract from custom repos
+python scripts/extract_catalog.py \
+  --repo /path/to/repo1 \
+  --repo /path/to/repo2 \
+  --out dist/catalog.json
+
+# Validate with strict mode (fail on warnings)
+python scripts/validate_catalog.py dist/catalog.json --strict
 ```
 
-## Repos Scanned
-
-Default paths in Makefile:
-- `/home/jeremy/000-projects/claude-code-plugins` (CCPI)
+Default repos scanned (configured in Makefile):
+- `/home/jeremy/000-projects/claude-code-plugins`
 - `/home/jeremy/000-projects/nixtla`
 
-## Entity Types
+## Architecture
 
-1. **Plugins** - detected by `plugin.json` or `.claude-plugin/plugin.json`
-2. **Skills** - detected by `SKILL.md` with YAML frontmatter
-3. **Documents** - detected by `000-docs/` directories or `NNN-AA-CODE-*.md` pattern
+```
+intent-catalog/
+├── scripts/
+│   ├── extract_catalog.py    # Walks repos, outputs catalog.json
+│   └── validate_catalog.py   # Validates against JSON Schema + semantic rules
+├── schema/
+│   ├── catalog.schema.json   # JSON Schema v1.0.0 (Draft 2020-12)
+│   └── catalog.contract.md   # Human-readable data contract
+├── dist/                     # Output (gitignored)
+│   ├── catalog.json          # Main catalog
+│   └── catalog.warnings.json # Files that couldn't be parsed
+└── Makefile                  # Build commands
+```
 
-## Relationships
+**Data flow**: Repo files → `extract_catalog.py` → `catalog.json` → `validate_catalog.py` → (future) Airtable sync
 
-Plugin↔Skill relations: `ships_with`, `depends_on`, `invokes`, `recommends`, `embeds`
-Entity↔Document relations: `spec`, `decision`, `report`, `use_case`, `evidence`, `runbook`, `security`, `marketing`
+## Entity Detection
 
-## Phase 2 (Next)
+| Entity | Detection Rule |
+|--------|----------------|
+| Plugin | `plugin.json` or `.claude-plugin/plugin.json` in directory |
+| Skill | `SKILL.md` file with YAML frontmatter (starts with `---`) |
+| Document | Files in `000-docs/` dirs OR matching `NNN-AA-CODE-*.md` pattern |
 
-- Airtable sync from catalog.json
-- Incremental updates
-- Webhook triggers on repo changes
+## ID Formats
 
-## Development Notes
+All IDs must be kebab-case (`^[a-z0-9-]+$`):
+- `plugin_id`: from manifest name or directory name
+- `skill_id`: from frontmatter `name` field or parent directory
+- `doc_id`: from filename (e.g., `001-OD-ARCH-design` → `001-od-arch-design`)
 
-- Extractor is idempotent: same input → same output
-- All arrays sorted alphabetically for determinism
-- Warnings don't fail extraction, only validation strictness
+## Key Design Constraints
 
-## Handoff Context
+1. **Deterministic output**: Same input repos + commits = identical JSON output
+2. **Sorted arrays**: All arrays sorted alphabetically by ID for stable diffs
+3. **Best-effort parsing**: Missing fields produce warnings, not failures
+4. **Relationship inference**: Plugin↔Skill `ships_with` relations auto-detected when skill is inside plugin directory
 
-This repo was created 2026-01-15 as part of the Airtable data architecture project. The goal is to have a proper data contract before syncing to Airtable, ensuring the repo is the source of truth.
+## Validation Rules
 
-Related work:
-- Airtable schema design: `/home/jeremy/.claude/plans/rippling-marinating-sloth.md`
-- Airtable skill scripts: `/home/jeremy/.claude/skills/airtable/scripts/`
+`validate_catalog.py` checks:
+- JSON Schema compliance (Draft 2020-12)
+- Relationship references point to valid source/target IDs
+- IDs are kebab-case format
+- No duplicate IDs within entity type (relaxed in multi-repo mode)
+
+## Current Status
+
+Phase 1 complete. Phase 2 planned: Airtable sync, incremental updates, webhook triggers.

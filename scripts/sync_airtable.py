@@ -37,12 +37,30 @@ SCHEMA_PATH = Path(__file__).parent.parent / "schema" / "airtable.base.json"
 SUMMARY_PATH = Path(__file__).parent.parent / "dist" / "sync_summary.json"
 
 AIRTABLE_API_BASE = "https://api.airtable.com/v0"
+EVIDENCE_DIR = Path(__file__).parent.parent / "dist" / "evidence"
 
 # Fields that should never be overwritten from repo
 PROTECTED_FIELDS = {"owner_notes", "priority", "business_value"}
 
 # Batch size for Airtable API
 BATCH_SIZE = 10
+
+# Retry configuration
+MAX_RETRIES = 5
+BASE_BACKOFF = 1.0  # seconds
+MAX_BACKOFF = 60.0  # seconds
+
+
+def generate_run_id() -> str:
+    """Generate a unique run ID."""
+    return datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+
+
+def log(message: str, level: str = "INFO", run_id: str = None) -> None:
+    """Structured logging with optional run correlation."""
+    timestamp = datetime.now(timezone.utc).isoformat()
+    prefix = f"[{run_id}] " if run_id else ""
+    print(f"{timestamp} [{level}] {prefix}{message}")
 
 
 def compute_entity_hash(entity: dict, exclude_keys: set = None) -> str:
@@ -97,10 +115,11 @@ class SyncStats:
 
 
 class AirtableSync:
-    def __init__(self, token: str, base_id: str, dry_run: bool = False):
+    def __init__(self, token: str, base_id: str, dry_run: bool = False, run_id: str = None):
         self.token = token
         self.base_id = base_id
         self.dry_run = dry_run
+        self.run_id = run_id or generate_run_id()
         self.headers = {
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
@@ -115,25 +134,51 @@ class AirtableSync:
             "plugin_skill_links": SyncStats(),
             "entity_doc_links": SyncStats(),
         }
+        self.evidence = {
+            "run_id": self.run_id,
+            "started_at": datetime.now(timezone.utc).isoformat(),
+            "dry_run": dry_run,
+            "events": [],
+        }
 
     def _request(self, method: str, endpoint: str, data: dict | None = None) -> dict:
-        """Make an API request with rate limit handling."""
+        """Make an API request with exponential backoff and rate limit handling."""
         url = f"{AIRTABLE_API_BASE}{endpoint}"
 
-        for attempt in range(5):
-            if method == "GET":
-                response = requests.get(url, headers=self.headers, params=data)
-            elif method == "POST":
-                response = requests.post(url, headers=self.headers, json=data)
-            elif method == "PATCH":
-                response = requests.patch(url, headers=self.headers, json=data)
-            else:
-                raise ValueError(f"Unsupported method: {method}")
+        for attempt in range(MAX_RETRIES):
+            try:
+                if method == "GET":
+                    response = requests.get(url, headers=self.headers, params=data, timeout=30)
+                elif method == "POST":
+                    response = requests.post(url, headers=self.headers, json=data, timeout=30)
+                elif method == "PATCH":
+                    response = requests.patch(url, headers=self.headers, json=data, timeout=30)
+                else:
+                    raise ValueError(f"Unsupported method: {method}")
+            except requests.exceptions.Timeout:
+                backoff = min(BASE_BACKOFF * (2 ** attempt), MAX_BACKOFF)
+                log(f"Request timeout, retrying in {backoff:.1f}s (attempt {attempt + 1}/{MAX_RETRIES})", "WARN", self.run_id)
+                time.sleep(backoff)
+                continue
+            except requests.exceptions.ConnectionError as e:
+                backoff = min(BASE_BACKOFF * (2 ** attempt), MAX_BACKOFF)
+                log(f"Connection error: {e}, retrying in {backoff:.1f}s", "WARN", self.run_id)
+                time.sleep(backoff)
+                continue
 
             if response.status_code == 429:
-                retry_after = int(response.headers.get("Retry-After", 30))
-                print(f"    Rate limited, waiting {retry_after}s...")
+                # Rate limited - use Retry-After header or exponential backoff
+                retry_after = int(response.headers.get("Retry-After", BASE_BACKOFF * (2 ** attempt)))
+                retry_after = min(retry_after, MAX_BACKOFF)
+                log(f"Rate limited, waiting {retry_after}s (attempt {attempt + 1}/{MAX_RETRIES})", "WARN", self.run_id)
                 time.sleep(retry_after)
+                continue
+
+            if response.status_code >= 500:
+                # Server error - retry with backoff
+                backoff = min(BASE_BACKOFF * (2 ** attempt), MAX_BACKOFF)
+                log(f"Server error {response.status_code}, retrying in {backoff:.1f}s", "WARN", self.run_id)
+                time.sleep(backoff)
                 continue
 
             if response.status_code >= 400:
@@ -528,10 +573,19 @@ class AirtableSync:
             else:
                 stats.created += 1
 
+    def add_evidence_event(self, event_type: str, details: dict) -> None:
+        """Add an event to the evidence log."""
+        self.evidence["events"].append({
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "type": event_type,
+            **details,
+        })
+
     def generate_summary(self) -> dict:
         """Generate sync summary."""
         return {
             "timestamp": datetime.now(timezone.utc).isoformat(),
+            "run_id": self.run_id,
             "dry_run": self.dry_run,
             "stats": {
                 name: {
@@ -551,6 +605,43 @@ class AirtableSync:
                 "errors": sum(len(s.errors) for s in self.stats.values()),
             },
         }
+
+    def save_evidence_bundle(self, catalog: dict, summary: dict) -> Path:
+        """Save evidence bundle for audit trail."""
+        evidence_dir = EVIDENCE_DIR / self.run_id
+        evidence_dir.mkdir(parents=True, exist_ok=True)
+
+        # Save catalog snapshot
+        with open(evidence_dir / "catalog_snapshot.json", "w") as f:
+            json.dump(catalog, f, indent=2)
+
+        # Save sync summary
+        with open(evidence_dir / "sync_summary.json", "w") as f:
+            json.dump(summary, f, indent=2)
+
+        # Complete and save evidence log
+        self.evidence["completed_at"] = datetime.now(timezone.utc).isoformat()
+        self.evidence["summary"] = summary["totals"]
+        with open(evidence_dir / "evidence.json", "w") as f:
+            json.dump(self.evidence, f, indent=2)
+
+        # Create manifest
+        manifest = {
+            "run_id": self.run_id,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "dry_run": self.dry_run,
+            "files": [
+                "catalog_snapshot.json",
+                "sync_summary.json",
+                "evidence.json",
+            ],
+            "stats": summary["totals"],
+        }
+        with open(evidence_dir / "manifest.json", "w") as f:
+            json.dump(manifest, f, indent=2)
+
+        log(f"Evidence bundle saved to {evidence_dir}", "INFO", self.run_id)
+        return evidence_dir
 
     def sync(self, catalog: dict) -> dict:
         """Main sync entry point."""
@@ -708,12 +799,26 @@ def main():
     print()
 
     # Sync
-    syncer = AirtableSync(token, base_id, dry_run=args.dry_run)
+    run_id = generate_run_id()
+    syncer = AirtableSync(token, base_id, dry_run=args.dry_run, run_id=run_id)
+
+    log(f"Starting sync (base_id={base_id})", "INFO", run_id)
+    syncer.add_evidence_event("sync_start", {
+        "base_id": base_id,
+        "catalog_version": catalog.get("meta", {}).get("version"),
+        "plugin_count": len(catalog.get("plugins", [])),
+        "skill_count": len(catalog.get("skills", [])),
+        "doc_count": len(catalog.get("documents", [])),
+        "incremental": prev_catalog is not None,
+    })
 
     try:
         summary = syncer.sync(catalog)
         summary["incremental"] = prev_catalog is not None
+        syncer.add_evidence_event("sync_complete", {"summary": summary["totals"]})
     except Exception as e:
+        log(f"Sync failed: {e}", "ERROR", run_id)
+        syncer.add_evidence_event("sync_error", {"error": str(e)})
         print(f"\nError during sync: {e}")
         import traceback
         traceback.print_exc()
@@ -730,6 +835,14 @@ def main():
     with open(SUMMARY_PATH, "w") as f:
         json.dump(summary, f, indent=2)
     print(f"\nSummary saved to {SUMMARY_PATH}")
+
+    # Save evidence bundle (with original catalog, before incremental filtering)
+    original_catalog = catalog
+    if args.catalog.exists():
+        with open(args.catalog) as f:
+            original_catalog = json.load(f)
+    evidence_dir = syncer.save_evidence_bundle(original_catalog, summary)
+    print(f"Evidence bundle: {evidence_dir}")
 
     # Print summary
     print("\n" + "=" * 50)

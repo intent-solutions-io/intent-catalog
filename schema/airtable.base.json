@@ -1,0 +1,420 @@
+{
+  "$schema": "https://intentsolutions.io/schemas/airtable.base.schema.json",
+  "version": "1.0.0",
+  "description": "Airtable base schema for Intent Catalog - defines tables, fields, and select options",
+  "tables": {
+    "Plugins": {
+      "description": "Claude Code plugins indexed from repos",
+      "primaryField": "plugin_id",
+      "fields": {
+        "plugin_id": {
+          "type": "singleLineText",
+          "description": "Unique identifier (kebab-case)",
+          "source": "repo",
+          "required": true
+        },
+        "name": {
+          "type": "singleLineText",
+          "description": "Display name",
+          "source": "repo"
+        },
+        "description": {
+          "type": "multilineText",
+          "description": "Plugin description",
+          "source": "repo"
+        },
+        "version": {
+          "type": "singleLineText",
+          "description": "Semver version",
+          "source": "repo"
+        },
+        "path": {
+          "type": "singleLineText",
+          "description": "Relative path in repo",
+          "source": "repo"
+        },
+        "source_repo": {
+          "type": "singleLineText",
+          "description": "Source repository name",
+          "source": "repo"
+        },
+        "source_commit": {
+          "type": "singleLineText",
+          "description": "Git commit SHA when extracted",
+          "source": "repo"
+        },
+        "status": {
+          "type": "singleSelect",
+          "description": "Plugin status",
+          "source": "repo",
+          "options": ["production", "development", "archived", "deprecated", "inactive"]
+        },
+        "has_mcp": {
+          "type": "checkbox",
+          "description": "Has MCP server",
+          "source": "repo"
+        },
+        "commands": {
+          "type": "multilineText",
+          "description": "Comma-separated command names",
+          "source": "repo"
+        },
+        "agents": {
+          "type": "multilineText",
+          "description": "Comma-separated agent names",
+          "source": "repo"
+        },
+        "repo_url": {
+          "type": "url",
+          "description": "GitHub URL to plugin directory",
+          "source": "computed"
+        },
+        "owner_notes": {
+          "type": "multilineText",
+          "description": "Internal notes (Airtable-only)",
+          "source": "airtable",
+          "protected": true
+        },
+        "priority": {
+          "type": "singleSelect",
+          "description": "Business priority (Airtable-only)",
+          "source": "airtable",
+          "protected": true,
+          "options": ["P0-Critical", "P1-High", "P2-Medium", "P3-Low"]
+        },
+        "business_value": {
+          "type": "singleSelect",
+          "description": "Business value assessment (Airtable-only)",
+          "source": "airtable",
+          "protected": true,
+          "options": ["Core", "Important", "Nice-to-have", "Experimental"]
+        },
+        "last_synced": {
+          "type": "dateTime",
+          "description": "Last sync timestamp",
+          "source": "sync"
+        }
+      }
+    },
+    "Skills": {
+      "description": "Reusable AI prompts (SKILL.md files)",
+      "primaryField": "skill_id",
+      "fields": {
+        "skill_id": {
+          "type": "singleLineText",
+          "description": "Unique identifier (kebab-case)",
+          "source": "repo",
+          "required": true
+        },
+        "name": {
+          "type": "singleLineText",
+          "description": "Display name from frontmatter",
+          "source": "repo"
+        },
+        "description": {
+          "type": "multilineText",
+          "description": "Skill description",
+          "source": "repo"
+        },
+        "version": {
+          "type": "singleLineText",
+          "description": "Version from frontmatter",
+          "source": "repo"
+        },
+        "path": {
+          "type": "singleLineText",
+          "description": "Path to SKILL.md",
+          "source": "repo"
+        },
+        "source_repo": {
+          "type": "singleLineText",
+          "description": "Source repository name",
+          "source": "repo"
+        },
+        "source_commit": {
+          "type": "singleLineText",
+          "description": "Git commit SHA when extracted",
+          "source": "repo"
+        },
+        "allowed_tools": {
+          "type": "multilineText",
+          "description": "Tools the skill can use",
+          "source": "repo"
+        },
+        "author": {
+          "type": "singleLineText",
+          "description": "Skill author",
+          "source": "repo"
+        },
+        "license": {
+          "type": "singleLineText",
+          "description": "License",
+          "source": "repo"
+        },
+        "trigger_phrases": {
+          "type": "multilineText",
+          "description": "Phrases that trigger this skill",
+          "source": "repo"
+        },
+        "is_standalone": {
+          "type": "checkbox",
+          "description": "Not part of a plugin",
+          "source": "repo"
+        },
+        "has_references": {
+          "type": "checkbox",
+          "description": "Has references/ directory",
+          "source": "repo"
+        },
+        "has_assets": {
+          "type": "checkbox",
+          "description": "Has assets/ directory",
+          "source": "repo"
+        },
+        "has_scripts": {
+          "type": "checkbox",
+          "description": "Has scripts/ directory",
+          "source": "repo"
+        },
+        "repo_url": {
+          "type": "url",
+          "description": "GitHub URL to skill",
+          "source": "computed"
+        },
+        "owner_notes": {
+          "type": "multilineText",
+          "description": "Internal notes (Airtable-only)",
+          "source": "airtable",
+          "protected": true
+        },
+        "priority": {
+          "type": "singleSelect",
+          "description": "Business priority (Airtable-only)",
+          "source": "airtable",
+          "protected": true,
+          "options": ["P0-Critical", "P1-High", "P2-Medium", "P3-Low"]
+        },
+        "last_synced": {
+          "type": "dateTime",
+          "description": "Last sync timestamp",
+          "source": "sync"
+        }
+      }
+    },
+    "Documents": {
+      "description": "PRDs, ADRs, runbooks, and other documentation",
+      "primaryField": "doc_id",
+      "fields": {
+        "doc_id": {
+          "type": "singleLineText",
+          "description": "Document identifier",
+          "source": "repo",
+          "required": true
+        },
+        "title": {
+          "type": "singleLineText",
+          "description": "Document title",
+          "source": "repo"
+        },
+        "doc_type": {
+          "type": "singleSelect",
+          "description": "Type of document",
+          "source": "repo",
+          "options": [
+            "spec", "decision", "report", "use_case", "evidence",
+            "runbook", "security", "marketing", "architecture",
+            "planning", "audit", "guide", "reference", "unknown"
+          ]
+        },
+        "category_code": {
+          "type": "singleLineText",
+          "description": "Category code (e.g., OD-ARCH, PP-PRD)",
+          "source": "repo"
+        },
+        "path": {
+          "type": "singleLineText",
+          "description": "Relative path in repo",
+          "source": "repo"
+        },
+        "source_repo": {
+          "type": "singleLineText",
+          "description": "Source repository name",
+          "source": "repo"
+        },
+        "source_commit": {
+          "type": "singleLineText",
+          "description": "Git commit SHA when extracted",
+          "source": "repo"
+        },
+        "status": {
+          "type": "singleSelect",
+          "description": "Document status",
+          "source": "repo",
+          "options": ["draft", "review", "approved", "obsolete", "unknown"]
+        },
+        "repo_url": {
+          "type": "url",
+          "description": "GitHub URL to document",
+          "source": "computed"
+        },
+        "owner_notes": {
+          "type": "multilineText",
+          "description": "Internal notes (Airtable-only)",
+          "source": "airtable",
+          "protected": true
+        },
+        "last_synced": {
+          "type": "dateTime",
+          "description": "Last sync timestamp",
+          "source": "sync"
+        }
+      }
+    },
+    "PluginSkillLinks": {
+      "description": "Relationships between plugins and skills",
+      "primaryField": "link_id",
+      "fields": {
+        "link_id": {
+          "type": "singleLineText",
+          "description": "Composite key: plugin_id::skill_id::relation_type",
+          "source": "repo",
+          "required": true
+        },
+        "plugin": {
+          "type": "multipleRecordLinks",
+          "description": "Link to Plugins table",
+          "source": "repo",
+          "linkedTable": "Plugins"
+        },
+        "skill": {
+          "type": "multipleRecordLinks",
+          "description": "Link to Skills table",
+          "source": "repo",
+          "linkedTable": "Skills"
+        },
+        "relation_type": {
+          "type": "singleSelect",
+          "description": "Type of relationship",
+          "source": "repo",
+          "options": ["ships_with", "depends_on", "invokes", "recommends", "embeds"]
+        },
+        "confidence": {
+          "type": "singleSelect",
+          "description": "How relationship was determined",
+          "source": "repo",
+          "options": ["manual", "inferred"]
+        },
+        "last_synced": {
+          "type": "dateTime",
+          "description": "Last sync timestamp",
+          "source": "sync"
+        }
+      }
+    },
+    "EntityDocLinks": {
+      "description": "Relationships between entities and documents",
+      "primaryField": "link_id",
+      "fields": {
+        "link_id": {
+          "type": "singleLineText",
+          "description": "Composite key: entity_type::entity_id::doc_id::relation_type",
+          "source": "repo",
+          "required": true
+        },
+        "entity_type": {
+          "type": "singleSelect",
+          "description": "Type of source entity",
+          "source": "repo",
+          "options": ["plugin", "skill", "document"]
+        },
+        "entity_id": {
+          "type": "singleLineText",
+          "description": "ID of source entity",
+          "source": "repo"
+        },
+        "document": {
+          "type": "multipleRecordLinks",
+          "description": "Link to Documents table",
+          "source": "repo",
+          "linkedTable": "Documents"
+        },
+        "relation_type": {
+          "type": "singleSelect",
+          "description": "Type of relationship",
+          "source": "repo",
+          "options": ["spec", "decision", "report", "use_case", "evidence", "runbook", "security", "marketing"]
+        },
+        "confidence": {
+          "type": "singleSelect",
+          "description": "How relationship was determined",
+          "source": "repo",
+          "options": ["manual", "inferred"]
+        },
+        "last_synced": {
+          "type": "dateTime",
+          "description": "Last sync timestamp",
+          "source": "sync"
+        }
+      }
+    },
+    "SyncRuns": {
+      "description": "Audit log of sync operations",
+      "primaryField": "run_id",
+      "fields": {
+        "run_id": {
+          "type": "singleLineText",
+          "description": "Unique run identifier (timestamp-based)",
+          "source": "sync",
+          "required": true
+        },
+        "started_at": {
+          "type": "dateTime",
+          "description": "When sync started",
+          "source": "sync"
+        },
+        "completed_at": {
+          "type": "dateTime",
+          "description": "When sync completed",
+          "source": "sync"
+        },
+        "status": {
+          "type": "singleSelect",
+          "description": "Run status",
+          "source": "sync",
+          "options": ["running", "success", "partial", "failed"]
+        },
+        "plugins_synced": {
+          "type": "number",
+          "description": "Number of plugins synced",
+          "source": "sync"
+        },
+        "skills_synced": {
+          "type": "number",
+          "description": "Number of skills synced",
+          "source": "sync"
+        },
+        "documents_synced": {
+          "type": "number",
+          "description": "Number of documents synced",
+          "source": "sync"
+        },
+        "errors": {
+          "type": "multilineText",
+          "description": "Error messages if any",
+          "source": "sync"
+        },
+        "commit_shas": {
+          "type": "multilineText",
+          "description": "Git commit SHAs for each repo",
+          "source": "sync"
+        }
+      }
+    }
+  },
+  "fieldSourcePolicy": {
+    "repo": "Overwritten on every sync from catalog.json",
+    "airtable": "Never overwritten - Airtable-only field",
+    "computed": "Computed during sync from other fields",
+    "sync": "Set by sync process itself"
+  }
+}

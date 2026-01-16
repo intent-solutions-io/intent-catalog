@@ -20,6 +20,8 @@ from typing import Any
 
 import yaml
 
+from skill_grader import grade_skill, get_missing_sections, REQUIRED_SECTIONS
+
 
 SCHEMA_VERSION = "1.0.0"
 
@@ -239,6 +241,25 @@ def extract_skill(skill_md: Path, repo_path: Path, repo_name: str, commit: str, 
     description = frontmatter.get("description", "")
     trigger_phrases = extract_trigger_phrases(description)
 
+    # Calculate quality score using CCPI validator grading
+    try:
+        quality_result = grade_skill(skill_md, frontmatter, body)
+        quality_score = quality_result["score"]
+        quality_grade = quality_result["grade"]
+        quality_breakdown = quality_result["breakdown"]
+    except Exception as e:
+        quality_score = 0
+        quality_grade = "F"
+        quality_breakdown = {}
+        warnings.append({
+            "path": rel_path,
+            "message": f"Quality grading failed: {e}",
+            "severity": "warning",
+        })
+
+    # Check for missing sections
+    missing_sections = get_missing_sections(body) if body else REQUIRED_SECTIONS
+
     skill = {
         "skill_id": skill_id,
         "name": frontmatter.get("name", skill_dir.name),
@@ -255,6 +276,11 @@ def extract_skill(skill_md: Path, repo_path: Path, repo_name: str, commit: str, 
         "has_references": (skill_dir / "references").exists(),
         "has_assets": (skill_dir / "assets").exists(),
         "has_scripts": (skill_dir / "scripts").exists(),
+        # Quality scoring fields (from CCPI validator)
+        "quality_score": quality_score,
+        "quality_grade": quality_grade,
+        "quality_breakdown": quality_breakdown,
+        "missing_sections": missing_sections,
     }
 
     # Create relationship if inside plugin
@@ -557,6 +583,21 @@ def main():
     print(f"  Warnings:      {len(catalog['warnings'])}")
     if collisions:
         print(f"  Collisions:    {len(collisions)}")
+
+    # Print quality score summary
+    if catalog['skills']:
+        scores = [s.get('quality_score', 0) for s in catalog['skills']]
+        avg_score = sum(scores) / len(scores)
+        grade_counts = {}
+        for s in catalog['skills']:
+            grade = s.get('quality_grade', 'F')
+            grade_counts[grade] = grade_counts.get(grade, 0) + 1
+        print(f"\n  Quality Scores:")
+        print(f"    Average: {avg_score:.1f}/100")
+        for grade in ['A', 'B', 'C', 'D', 'F']:
+            count = grade_counts.get(grade, 0)
+            pct = (count / len(scores) * 100) if scores else 0
+            print(f"    {grade}: {count} ({pct:.1f}%)")
 
     return 0
 

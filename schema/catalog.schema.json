@@ -168,6 +168,52 @@
         },
         "has_scripts": {
           "type": "boolean"
+        },
+        "quality_score": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Intent Solutions 100-point quality score"
+        },
+        "quality_grade": {
+          "type": "string",
+          "enum": ["A", "B", "C", "D", "F"],
+          "description": "Letter grade derived from quality_score"
+        },
+        "quality_breakdown": {
+          "type": "object",
+          "description": "Scoring by pillar (points earned)",
+          "properties": {
+            "progressive_disclosure": {
+              "type": "integer",
+              "description": "Score for progressive disclosure (max 30)"
+            },
+            "ease_of_use": {
+              "type": "integer",
+              "description": "Score for ease of use (max 25)"
+            },
+            "utility": {
+              "type": "integer",
+              "description": "Score for utility (max 20)"
+            },
+            "spec_compliance": {
+              "type": "integer",
+              "description": "Score for spec compliance (max 15)"
+            },
+            "writing_style": {
+              "type": "integer",
+              "description": "Score for writing style (max 10)"
+            },
+            "modifiers": {
+              "type": "integer",
+              "description": "Bonus/penalty modifiers (can be negative)"
+            }
+          }
+        },
+        "missing_sections": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Required sections not found in SKILL.md"
         }
       }
     },

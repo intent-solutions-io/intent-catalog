@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  extract-validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout intent-catalog
+        uses: actions/checkout@v4
+
+      - name: Checkout claude-code-plugins
+        uses: actions/checkout@v4
+        with:
+          repository: intent-solutions-io/claude-code-plugins
+          path: repos/claude-code-plugins
+
+      - name: Checkout nixtla
+        uses: actions/checkout@v4
+        with:
+          repository: intent-solutions-io/nixtla
+          path: repos/nixtla
+        continue-on-error: true  # May be private
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install pyyaml jsonschema
+
+      - name: Extract catalog
+        run: |
+          python scripts/extract_catalog.py \
+            --repo repos/claude-code-plugins \
+            --out dist/catalog.json
+        # Add --repo repos/nixtla if available
+
+      - name: Validate catalog
+        run: |
+          python scripts/validate_catalog.py dist/catalog.json
+
+      - name: Upload catalog artifact
+        if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: catalog
+          path: |
+            dist/catalog.json
+            dist/catalog.warnings.json
+          retention-days: 30

@@ -1,0 +1,146 @@
+name: Sync to Airtable
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (show changes without applying)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout intent-catalog
+        uses: actions/checkout@v4
+
+      - name: Checkout claude-code-plugins
+        uses: actions/checkout@v4
+        with:
+          repository: intent-solutions-io/claude-code-plugins
+          path: repos/claude-code-plugins
+
+      - name: Checkout nixtla
+        uses: actions/checkout@v4
+        with:
+          repository: intent-solutions-io/nixtla
+          path: repos/nixtla
+        continue-on-error: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Extract catalog
+        run: |
+          python scripts/extract_catalog.py \
+            --repo repos/claude-code-plugins \
+            --out dist/catalog.json
+          # Add --repo repos/nixtla if available
+
+      - name: Validate catalog
+        run: python scripts/validate_catalog.py dist/catalog.json
+
+      - name: Check mappings exist
+        id: check_mappings
+        run: |
+          if [ -f mappings/airtable_ids.json ]; then
+            echo "mappings_exist=true" >> $GITHUB_OUTPUT
+          else
+            echo "mappings_exist=false" >> $GITHUB_OUTPUT
+            echo "::warning::Mappings file not found. Run provisioner first."
+          fi
+
+      - name: Determine sync mode
+        id: sync_mode
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "dry_run=true" >> $GITHUB_OUTPUT
+            echo "Running in DRY RUN mode for PR"
+          elif [ "${{ inputs.dry_run }}" = "true" ]; then
+            echo "dry_run=true" >> $GITHUB_OUTPUT
+            echo "Running in DRY RUN mode (manual input)"
+          else
+            echo "dry_run=false" >> $GITHUB_OUTPUT
+            echo "Running in LIVE mode"
+          fi
+
+      - name: Sync to Airtable
+        if: steps.check_mappings.outputs.mappings_exist == 'true'
+        env:
+          AIRTABLE_TOKEN: ${{ secrets.AIRTABLE_TOKEN }}
+          AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
+        run: |
+          if [ "${{ steps.sync_mode.outputs.dry_run }}" = "true" ]; then
+            python scripts/sync_airtable.py --dry-run | tee sync_output.txt
+          else
+            python scripts/sync_airtable.py | tee sync_output.txt
+          fi
+
+      - name: Post PR comment with diff
+        if: github.event_name == 'pull_request' && steps.check_mappings.outputs.mappings_exist == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            let summaryContent = 'Sync summary not available';
+            try {
+              const summary = JSON.parse(fs.readFileSync('dist/sync_summary.json', 'utf8'));
+              const totals = summary.totals;
+              summaryContent = `
+            ## Airtable Sync Preview (Dry Run)
+
+            | Metric | Count |
+            |--------|-------|
+            | Created | ${totals.created} |
+            | Updated | ${totals.updated} |
+            | Unchanged | ${totals.unchanged} |
+            | Marked Inactive | ${totals.marked_inactive} |
+            | Errors | ${totals.errors} |
+
+            > This is a preview. Changes will be applied when merged to main.
+            `;
+            } catch (e) {
+              summaryContent = `## Airtable Sync Preview\n\nCould not load summary: ${e.message}`;
+            }
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summaryContent
+            });
+
+      - name: Upload sync summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: sync-summary
+          path: |
+            dist/sync_summary.json
+            dist/catalog.json
+          retention-days: 30
+
+      - name: Upload catalog artifact
+        if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: catalog
+          path: |
+            dist/catalog.json
+            dist/catalog.warnings.json
+          retention-days: 30

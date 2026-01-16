@@ -86,6 +86,10 @@
           "type": "string",
           "description": "Which repo this came from"
         },
+        "source_commit": {
+          "type": "string",
+          "description": "Git commit SHA (short) when extracted"
+        },
         "status": {
           "type": "string",
           "enum": ["production", "development", "archived", "deprecated"]
@@ -130,6 +134,10 @@
         },
         "source_repo": {
           "type": "string"
+        },
+        "source_commit": {
+          "type": "string",
+          "description": "Git commit SHA (short) when extracted"
         },
         "allowed_tools": {
           "oneOf": [
@@ -191,6 +199,10 @@
         },
         "source_repo": {
           "type": "string"
+        },
+        "source_commit": {
+          "type": "string",
+          "description": "Git commit SHA (short) when extracted"
         },
         "status": {
           "type": "string",

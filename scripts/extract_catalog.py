@@ -96,14 +96,14 @@ def to_kebab_case(s: str) -> str:
     return s.lower().strip("-")
 
 
-def find_plugins(repo_path: Path, repo_name: str, warnings: list) -> list[dict]:
+def find_plugins(repo_path: Path, repo_name: str, commit: str, warnings: list) -> list[dict]:
     """Find all plugins in a repo."""
     plugins = []
 
     # Look for plugin manifests
     for manifest_path in repo_path.rglob("plugin.json"):
         try:
-            plugin = extract_plugin(manifest_path, repo_path, repo_name, warnings)
+            plugin = extract_plugin(manifest_path, repo_path, repo_name, commit, warnings)
             if plugin:
                 plugins.append(plugin)
         except Exception as e:
@@ -116,7 +116,7 @@ def find_plugins(repo_path: Path, repo_name: str, warnings: list) -> list[dict]:
     # Also check .claude-plugin/plugin.json
     for manifest_path in repo_path.rglob(".claude-plugin/plugin.json"):
         try:
-            plugin = extract_plugin(manifest_path, repo_path, repo_name, warnings)
+            plugin = extract_plugin(manifest_path, repo_path, repo_name, commit, warnings)
             if plugin:
                 # Avoid duplicates
                 if not any(p["plugin_id"] == plugin["plugin_id"] for p in plugins):
@@ -131,7 +131,7 @@ def find_plugins(repo_path: Path, repo_name: str, warnings: list) -> list[dict]:
     return plugins
 
 
-def extract_plugin(manifest_path: Path, repo_path: Path, repo_name: str, warnings: list) -> dict | None:
+def extract_plugin(manifest_path: Path, repo_path: Path, repo_name: str, commit: str, warnings: list) -> dict | None:
     """Extract plugin info from manifest."""
     with open(manifest_path) as f:
         manifest = json.load(f)
@@ -176,6 +176,7 @@ def extract_plugin(manifest_path: Path, repo_path: Path, repo_name: str, warning
         "version": manifest.get("version", ""),
         "path": rel_path,
         "source_repo": repo_name,
+        "source_commit": commit,
         "status": status,
         "has_mcp": has_mcp,
         "commands": sorted(commands),
@@ -183,7 +184,7 @@ def extract_plugin(manifest_path: Path, repo_path: Path, repo_name: str, warning
     }
 
 
-def find_skills(repo_path: Path, repo_name: str, plugins: list[dict], warnings: list) -> tuple[list[dict], list[dict]]:
+def find_skills(repo_path: Path, repo_name: str, commit: str, plugins: list[dict], warnings: list) -> tuple[list[dict], list[dict]]:
     """Find all skills in a repo."""
     skills = []
     relationships = []
@@ -193,7 +194,7 @@ def find_skills(repo_path: Path, repo_name: str, plugins: list[dict], warnings: 
 
     for skill_md in repo_path.rglob("SKILL.md"):
         try:
-            skill, rels = extract_skill(skill_md, repo_path, repo_name, plugin_paths, warnings)
+            skill, rels = extract_skill(skill_md, repo_path, repo_name, commit, plugin_paths, warnings)
             if skill:
                 skills.append(skill)
                 relationships.extend(rels)
@@ -207,7 +208,7 @@ def find_skills(repo_path: Path, repo_name: str, plugins: list[dict], warnings: 
     return skills, relationships
 
 
-def extract_skill(skill_md: Path, repo_path: Path, repo_name: str, plugin_paths: dict, warnings: list) -> tuple[dict | None, list[dict]]:
+def extract_skill(skill_md: Path, repo_path: Path, repo_name: str, commit: str, plugin_paths: dict, warnings: list) -> tuple[dict | None, list[dict]]:
     """Extract skill info from SKILL.md."""
     content = skill_md.read_text()
     frontmatter, body = parse_yaml_frontmatter(content)
@@ -245,6 +246,7 @@ def extract_skill(skill_md: Path, repo_path: Path, repo_name: str, plugin_paths:
         "version": frontmatter.get("version", ""),
         "path": rel_path,
         "source_repo": repo_name,
+        "source_commit": commit,
         "allowed_tools": frontmatter.get("allowed-tools", ""),
         "author": frontmatter.get("author", ""),
         "license": frontmatter.get("license", ""),
@@ -270,7 +272,7 @@ def extract_skill(skill_md: Path, repo_path: Path, repo_name: str, plugin_paths:
     return skill, relationships
 
 
-def find_documents(repo_path: Path, repo_name: str, warnings: list) -> list[dict]:
+def find_documents(repo_path: Path, repo_name: str, commit: str, warnings: list) -> list[dict]:
     """Find all documents in a repo."""
     documents = []
     seen_ids = set()
@@ -280,7 +282,7 @@ def find_documents(repo_path: Path, repo_name: str, warnings: list) -> list[dict
         if not docs_dir.is_dir():
             continue
         for doc_file in docs_dir.glob("*.md"):
-            doc = extract_document(doc_file, repo_path, repo_name, warnings)
+            doc = extract_document(doc_file, repo_path, repo_name, commit, warnings)
             if doc and doc["doc_id"] not in seen_ids:
                 documents.append(doc)
                 seen_ids.add(doc["doc_id"])
@@ -288,7 +290,7 @@ def find_documents(repo_path: Path, repo_name: str, warnings: list) -> list[dict
     # Find pattern-matching docs anywhere
     for md_file in repo_path.rglob("*.md"):
         if DOC_PATTERN.match(md_file.name):
-            doc = extract_document(md_file, repo_path, repo_name, warnings)
+            doc = extract_document(md_file, repo_path, repo_name, commit, warnings)
             if doc and doc["doc_id"] not in seen_ids:
                 documents.append(doc)
                 seen_ids.add(doc["doc_id"])
@@ -296,7 +298,7 @@ def find_documents(repo_path: Path, repo_name: str, warnings: list) -> list[dict
     return documents
 
 
-def extract_document(doc_path: Path, repo_path: Path, repo_name: str, warnings: list) -> dict | None:
+def extract_document(doc_path: Path, repo_path: Path, repo_name: str, commit: str, warnings: list) -> dict | None:
     """Extract document info."""
     rel_path = str(doc_path.relative_to(repo_path))
     filename = doc_path.name
@@ -334,6 +336,7 @@ def extract_document(doc_path: Path, repo_path: Path, repo_name: str, warnings: 
         "category_code": category_code,
         "path": rel_path,
         "source_repo": repo_name,
+        "source_commit": commit,
         "status": "unknown",
     }
 
@@ -359,16 +362,16 @@ def extract_catalog(repo_paths: list[Path], output_path: Path) -> dict:
         })
 
         # Extract plugins
-        plugins = find_plugins(repo_path, repo_name, warnings)
+        plugins = find_plugins(repo_path, repo_name, commit, warnings)
         all_plugins.extend(plugins)
 
         # Extract skills (creates relationships to plugins)
-        skills, rels = find_skills(repo_path, repo_name, plugins, warnings)
+        skills, rels = find_skills(repo_path, repo_name, commit, plugins, warnings)
         all_skills.extend(skills)
         all_relationships.extend(rels)
 
         # Extract documents
-        documents = find_documents(repo_path, repo_name, warnings)
+        documents = find_documents(repo_path, repo_name, commit, warnings)
         all_documents.extend(documents)
 
     # Sort everything for determinism

@@ -161,6 +161,27 @@ class AirtableProvisioner:
                 "choices": [{"name": opt} for opt in spec["options"]]
             }
 
+        # Handle checkbox (requires icon and color)
+        if spec["type"] == "checkbox":
+            field_def["options"] = {
+                "icon": "check",
+                "color": "greenBright"
+            }
+
+        # Handle number (requires precision)
+        if spec["type"] == "number":
+            field_def["options"] = {
+                "precision": spec.get("precision", 0)
+            }
+
+        # Handle dateTime (requires date/time format)
+        if spec["type"] == "dateTime":
+            field_def["options"] = {
+                "dateFormat": {"name": "iso"},
+                "timeFormat": {"name": "24hour"},
+                "timeZone": "utc"
+            }
+
         # Handle linked records
         if spec["type"] == "multipleRecordLinks" and "linkedTable" in spec:
             linked_table_id = self.mappings["tables"].get(spec["linkedTable"])

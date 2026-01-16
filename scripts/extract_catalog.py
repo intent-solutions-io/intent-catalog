@@ -25,6 +25,31 @@ from skill_grader import grade_skill, get_missing_sections, REQUIRED_SECTIONS
 
 SCHEMA_VERSION = "1.0.0"
 
+# Directories to skip during extraction (exact matches)
+SKIP_DIRS = {
+    "backups", "backup", "archive", "archives", "old",
+    ".git", "node_modules", "__pycache__",
+    "planned-skills", "saas-packs", "generated",  # Auto-generated junk
+}
+# Patterns to skip (substring matches)
+SKIP_PATTERNS = {"backup", "archive", "old-", "-old", "planned-skill", "saas-pack"}
+
+
+def should_skip_path(path: Path) -> bool:
+    """Check if path should be skipped (in backup/archive dirs)."""
+    parts = path.parts
+    # Exact match
+    if set(parts) & SKIP_DIRS:
+        return True
+    # Substring match (e.g., "010-archive", "backups-20251108")
+    for part in parts:
+        part_lower = part.lower()
+        for pattern in SKIP_PATTERNS:
+            if pattern in part_lower:
+                return True
+    return False
+
+
 # Document type code mappings
 DOC_TYPE_MAP = {
     "OD-ARCH": "architecture",
@@ -104,6 +129,8 @@ def find_plugins(repo_path: Path, repo_name: str, commit: str, warnings: list) -
 
     # Look for plugin manifests
     for manifest_path in repo_path.rglob("plugin.json"):
+        if should_skip_path(manifest_path):
+            continue
         try:
             plugin = extract_plugin(manifest_path, repo_path, repo_name, commit, warnings)
             if plugin:
@@ -117,6 +144,8 @@ def find_plugins(repo_path: Path, repo_name: str, commit: str, warnings: list) -
 
     # Also check .claude-plugin/plugin.json
     for manifest_path in repo_path.rglob(".claude-plugin/plugin.json"):
+        if should_skip_path(manifest_path):
+            continue
         try:
             plugin = extract_plugin(manifest_path, repo_path, repo_name, commit, warnings)
             if plugin:
@@ -195,6 +224,8 @@ def find_skills(repo_path: Path, repo_name: str, commit: str, plugins: list[dict
     plugin_paths = {p["path"]: p["plugin_id"] for p in plugins}
 
     for skill_md in repo_path.rglob("SKILL.md"):
+        if should_skip_path(skill_md):
+            continue
         try:
             skill, rels = extract_skill(skill_md, repo_path, repo_name, commit, plugin_paths, warnings)
             if skill:
@@ -305,6 +336,8 @@ def find_documents(repo_path: Path, repo_name: str, commit: str, warnings: list)
 
     # Find 000-docs directories
     for docs_dir in repo_path.rglob("000-docs"):
+        if should_skip_path(docs_dir):
+            continue
         if not docs_dir.is_dir():
             continue
         for doc_file in docs_dir.glob("*.md"):
@@ -315,6 +348,8 @@ def find_documents(repo_path: Path, repo_name: str, commit: str, warnings: list)
 
     # Find pattern-matching docs anywhere
     for md_file in repo_path.rglob("*.md"):
+        if should_skip_path(md_file):
+            continue
         if DOC_PATTERN.match(md_file.name):
             doc = extract_document(md_file, repo_path, repo_name, commit, warnings)
             if doc and doc["doc_id"] not in seen_ids:
@@ -399,6 +434,55 @@ def extract_catalog(repo_paths: list[Path], output_path: Path) -> dict:
         # Extract documents
         documents = find_documents(repo_path, repo_name, commit, warnings)
         all_documents.extend(documents)
+
+    # Deduplicate by ID (keep first occurrence or highest quality)
+    def dedupe_by_id(items: list[dict], id_field: str, quality_field: str = "quality_score") -> list[dict]:
+        """Deduplicate items by ID, keeping highest quality or first seen."""
+        seen = {}
+        for item in items:
+            item_id = item.get(id_field)
+            if not item_id:
+                continue
+            if item_id not in seen:
+                seen[item_id] = item
+            else:
+                # Keep the one with higher quality score
+                existing_score = seen[item_id].get(quality_field, 0) or 0
+                new_score = item.get(quality_field, 0) or 0
+                if new_score > existing_score:
+                    seen[item_id] = item
+        return list(seen.values())
+
+    all_plugins = dedupe_by_id(all_plugins, "plugin_id")
+    all_skills = dedupe_by_id(all_skills, "skill_id")
+    all_documents = dedupe_by_id(all_documents, "doc_id", "doc_id")  # No quality score for docs
+
+    # Filter relationships to only include existing entities
+    valid_plugin_ids = {p["plugin_id"] for p in all_plugins}
+    valid_skill_ids = {s["skill_id"] for s in all_skills}
+    valid_doc_ids = {d["doc_id"] for d in all_documents}
+
+    def is_valid_relationship(rel: dict) -> bool:
+        src_type, src_id = rel["source_type"], rel["source_id"]
+        tgt_type, tgt_id = rel["target_type"], rel["target_id"]
+        valid_src = (src_type == "plugin" and src_id in valid_plugin_ids) or \
+                    (src_type == "skill" and src_id in valid_skill_ids) or \
+                    (src_type == "document" and src_id in valid_doc_ids)
+        valid_tgt = (tgt_type == "plugin" and tgt_id in valid_plugin_ids) or \
+                    (tgt_type == "skill" and tgt_id in valid_skill_ids) or \
+                    (tgt_type == "document" and tgt_id in valid_doc_ids)
+        return valid_src and valid_tgt
+
+    all_relationships = [r for r in all_relationships if is_valid_relationship(r)]
+    # Dedupe relationships too
+    seen_rels = set()
+    unique_rels = []
+    for rel in all_relationships:
+        key = (rel["source_type"], rel["source_id"], rel["target_type"], rel["target_id"], rel["relation_type"])
+        if key not in seen_rels:
+            seen_rels.add(key)
+            unique_rels.append(rel)
+    all_relationships = unique_rels
 
     # Sort everything for determinism
     all_plugins.sort(key=lambda x: x["plugin_id"])

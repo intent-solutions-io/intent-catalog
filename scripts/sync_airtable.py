@@ -294,22 +294,39 @@ class AirtableSync:
         return fields
 
     def upsert_batch(self, table_name: str, records: list[dict]) -> list[dict]:
-        """Upsert a batch of records."""
+        """Upsert a batch of records. Uses POST for new, PATCH for existing."""
         table_id = self.mappings["tables"].get(table_name)
         if not table_id:
             raise ValueError(f"Table '{table_name}' not found in mappings")
 
-        # Airtable upsert endpoint
-        data = {
-            "records": records,
-            "typecast": True,  # Auto-convert types
-        }
-
         if self.dry_run:
             return records
 
-        result = self._request("PATCH", f"/{self.base_id}/{table_id}", data)
-        return result.get("records", [])
+        # Separate new records (no id) from existing records (has id)
+        new_records = [r for r in records if "id" not in r]
+        existing_records = [r for r in records if "id" in r]
+
+        results = []
+
+        # Create new records with POST
+        if new_records:
+            data = {
+                "records": new_records,
+                "typecast": True,
+            }
+            result = self._request("POST", f"/{self.base_id}/{table_id}", data)
+            results.extend(result.get("records", []))
+
+        # Update existing records with PATCH
+        if existing_records:
+            data = {
+                "records": existing_records,
+                "typecast": True,
+            }
+            result = self._request("PATCH", f"/{self.base_id}/{table_id}", data)
+            results.extend(result.get("records", []))
+
+        return results
 
     def sync_entities(
         self,
@@ -398,6 +415,12 @@ class AirtableSync:
 
         table_id = self.mappings["tables"].get(table_name)
         if not table_id:
+            return
+
+        # Check if this table has a status field in the schema
+        table_schema = self.schema.get("tables", {}).get(table_name, {})
+        if "status" not in table_schema.get("fields", {}):
+            print(f"    Skipping mark inactive ({table_name} has no status field)")
             return
 
         batch = []

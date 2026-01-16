@@ -31,6 +31,7 @@ except ImportError:
 
 
 CATALOG_PATH = Path(__file__).parent.parent / "dist" / "catalog.json"
+PREV_CATALOG_PATH = Path(__file__).parent.parent / "dist" / "catalog.prev.json"
 MAPPINGS_PATH = Path(__file__).parent.parent / "mappings" / "airtable_ids.json"
 SCHEMA_PATH = Path(__file__).parent.parent / "schema" / "airtable.base.json"
 SUMMARY_PATH = Path(__file__).parent.parent / "dist" / "sync_summary.json"
@@ -42,6 +43,47 @@ PROTECTED_FIELDS = {"owner_notes", "priority", "business_value"}
 
 # Batch size for Airtable API
 BATCH_SIZE = 10
+
+
+def compute_entity_hash(entity: dict, exclude_keys: set = None) -> str:
+    """Compute a hash for an entity to detect changes."""
+    import hashlib
+    exclude = exclude_keys or {"last_synced"}
+    filtered = {k: v for k, v in sorted(entity.items()) if k not in exclude}
+    return hashlib.md5(json.dumps(filtered, sort_keys=True).encode()).hexdigest()[:12]
+
+
+def compute_diff(current: list[dict], previous: list[dict], id_field: str) -> dict:
+    """Compute diff between current and previous entity lists."""
+    prev_map = {e[id_field]: e for e in previous}
+    curr_map = {e[id_field]: e for e in current}
+
+    prev_hashes = {eid: compute_entity_hash(e) for eid, e in prev_map.items()}
+    curr_hashes = {eid: compute_entity_hash(e) for eid, e in curr_map.items()}
+
+    added = []
+    modified = []
+    removed = []
+    unchanged = []
+
+    for eid, entity in curr_map.items():
+        if eid not in prev_map:
+            added.append(entity)
+        elif curr_hashes[eid] != prev_hashes[eid]:
+            modified.append(entity)
+        else:
+            unchanged.append(entity)
+
+    for eid in prev_map:
+        if eid not in curr_map:
+            removed.append(prev_map[eid])
+
+    return {
+        "added": added,
+        "modified": modified,
+        "removed": removed,
+        "unchanged": unchanged,
+    }
 
 
 @dataclass
@@ -570,6 +612,17 @@ def main():
         "--base-id",
         help="Airtable base ID (overrides AIRTABLE_BASE_ID env var)",
     )
+    parser.add_argument(
+        "--incremental",
+        action="store_true",
+        help="Only sync changed entities (compares to previous catalog)",
+    )
+    parser.add_argument(
+        "--prev-catalog",
+        type=Path,
+        default=PREV_CATALOG_PATH,
+        help=f"Path to previous catalog for incremental sync (default: {PREV_CATALOG_PATH})",
+    )
     args = parser.parse_args()
 
     # Get credentials
@@ -592,6 +645,16 @@ def main():
     with open(args.catalog) as f:
         catalog = json.load(f)
 
+    # Load previous catalog for incremental sync
+    prev_catalog = None
+    if args.incremental:
+        if args.prev_catalog.exists():
+            with open(args.prev_catalog) as f:
+                prev_catalog = json.load(f)
+            print("Incremental sync enabled - comparing to previous catalog")
+        else:
+            print(f"Warning: Previous catalog not found ({args.prev_catalog}), doing full sync")
+
     print(f"Syncing to Airtable base: {base_id}")
     print(f"Catalog version: {catalog.get('meta', {}).get('version', 'unknown')}")
     print(f"Entities: {len(catalog.get('plugins', []))} plugins, "
@@ -599,6 +662,49 @@ def main():
           f"{len(catalog.get('documents', []))} documents")
     if args.dry_run:
         print("DRY RUN MODE - no changes will be made")
+
+    # Compute diffs if incremental
+    if prev_catalog:
+        print("\nComputing diffs...")
+        plugin_diff = compute_diff(catalog.get("plugins", []), prev_catalog.get("plugins", []), "plugin_id")
+        skill_diff = compute_diff(catalog.get("skills", []), prev_catalog.get("skills", []), "skill_id")
+        doc_diff = compute_diff(catalog.get("documents", []), prev_catalog.get("documents", []), "doc_id")
+
+        print(f"  Plugins:   {len(plugin_diff['added'])} added, {len(plugin_diff['modified'])} modified, {len(plugin_diff['removed'])} removed, {len(plugin_diff['unchanged'])} unchanged")
+        print(f"  Skills:    {len(skill_diff['added'])} added, {len(skill_diff['modified'])} modified, {len(skill_diff['removed'])} removed, {len(skill_diff['unchanged'])} unchanged")
+        print(f"  Documents: {len(doc_diff['added'])} added, {len(doc_diff['modified'])} modified, {len(doc_diff['removed'])} removed, {len(doc_diff['unchanged'])} unchanged")
+
+        # Build incremental catalog with only changed entities
+        catalog = {
+            "meta": catalog.get("meta", {}),
+            "plugins": plugin_diff["added"] + plugin_diff["modified"],
+            "skills": skill_diff["added"] + skill_diff["modified"],
+            "documents": doc_diff["added"] + doc_diff["modified"],
+            "relationships": catalog.get("relationships", []),  # Always sync all relationships for now
+            "warnings": catalog.get("warnings", []),
+        }
+
+        total_changes = (
+            len(plugin_diff["added"]) + len(plugin_diff["modified"]) +
+            len(skill_diff["added"]) + len(skill_diff["modified"]) +
+            len(doc_diff["added"]) + len(doc_diff["modified"])
+        )
+
+        if total_changes == 0:
+            print("\nNo changes detected - skipping sync")
+            # Save empty summary
+            summary = {
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "dry_run": args.dry_run,
+                "incremental": True,
+                "totals": {"created": 0, "updated": 0, "unchanged": 0, "marked_inactive": 0, "errors": 0},
+                "message": "No changes detected",
+            }
+            SUMMARY_PATH.parent.mkdir(parents=True, exist_ok=True)
+            with open(SUMMARY_PATH, "w") as f:
+                json.dump(summary, f, indent=2)
+            return 0
+
     print()
 
     # Sync
@@ -606,11 +712,18 @@ def main():
 
     try:
         summary = syncer.sync(catalog)
+        summary["incremental"] = prev_catalog is not None
     except Exception as e:
         print(f"\nError during sync: {e}")
         import traceback
         traceback.print_exc()
         return 1
+
+    # Save current catalog as previous for next incremental sync
+    if not args.dry_run:
+        import shutil
+        shutil.copy(args.catalog, args.prev_catalog)
+        print(f"Saved current catalog as {args.prev_catalog} for future incremental syncs")
 
     # Save summary
     SUMMARY_PATH.parent.mkdir(parents=True, exist_ok=True)

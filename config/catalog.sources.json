@@ -1,0 +1,48 @@
+{
+  "$schema": "https://intentsolutions.io/schemas/catalog.sources.schema.json",
+  "version": "1.0.0",
+  "description": "Repository sources for catalog extraction",
+  "defaults": {
+    "branch": "main",
+    "include_patterns": [
+      "**/*.md",
+      "**/plugin.json",
+      "**/.claude-plugin/plugin.json",
+      "**/SKILL.md"
+    ],
+    "exclude_patterns": [
+      "**/node_modules/**",
+      "**/.git/**",
+      "**/dist/**",
+      "**/build/**"
+    ]
+  },
+  "sources": [
+    {
+      "id": "ccpi",
+      "name": "claude-code-plugins",
+      "type": "local",
+      "path": "/home/jeremy/000-projects/claude-code-plugins",
+      "description": "Primary Claude Code plugins repository",
+      "enabled": true
+    },
+    {
+      "id": "nixtla",
+      "name": "nixtla",
+      "type": "local",
+      "path": "/home/jeremy/000-projects/nixtla",
+      "description": "Nixtla plugins and tools",
+      "enabled": true
+    }
+  ],
+  "github": {
+    "api_base": "https://api.github.com",
+    "org": "intent-solutions-io",
+    "token_env": "GITHUB_TOKEN"
+  },
+  "id_strategy": {
+    "collision_handling": "prefix_with_repo",
+    "separator": "/",
+    "description": "If ID collision detected, prefix with source_repo/id"
+  }
+}

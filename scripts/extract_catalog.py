@@ -397,32 +397,140 @@ def extract_catalog(repo_paths: list[Path], output_path: Path) -> dict:
     return catalog
 
 
+CONFIG_PATH = Path(__file__).parent.parent / "config" / "catalog.sources.json"
+
+
+def load_sources_config() -> dict | None:
+    """Load repository sources from config file."""
+    if not CONFIG_PATH.exists():
+        return None
+    with open(CONFIG_PATH) as f:
+        return json.load(f)
+
+
+def detect_collisions(catalog: dict) -> list[dict]:
+    """Detect ID collisions across repos and report them."""
+    collisions = []
+
+    # Check plugins
+    plugin_sources = {}
+    for p in catalog["plugins"]:
+        pid = p["plugin_id"]
+        if pid in plugin_sources:
+            collisions.append({
+                "type": "plugin",
+                "id": pid,
+                "repos": [plugin_sources[pid], p["source_repo"]],
+            })
+        else:
+            plugin_sources[pid] = p["source_repo"]
+
+    # Check skills
+    skill_sources = {}
+    for s in catalog["skills"]:
+        sid = s["skill_id"]
+        if sid in skill_sources:
+            collisions.append({
+                "type": "skill",
+                "id": sid,
+                "repos": [skill_sources[sid], s["source_repo"]],
+            })
+        else:
+            skill_sources[sid] = s["source_repo"]
+
+    # Check documents
+    doc_sources = {}
+    for d in catalog["documents"]:
+        did = d["doc_id"]
+        if did in doc_sources:
+            collisions.append({
+                "type": "document",
+                "id": did,
+                "repos": [doc_sources[did], d["source_repo"]],
+            })
+        else:
+            doc_sources[did] = d["source_repo"]
+
+    return collisions
+
+
 def main():
     parser = argparse.ArgumentParser(description="Extract Intent Catalog from repos")
     parser.add_argument(
         "--repo",
         action="append",
-        required=True,
         help="Path to repo (can be specified multiple times)",
+    )
+    parser.add_argument(
+        "--config",
+        type=Path,
+        help=f"Path to sources config (default: {CONFIG_PATH})",
     )
     parser.add_argument(
         "--out",
         default="dist/catalog.json",
         help="Output path for catalog.json",
     )
+    parser.add_argument(
+        "--check-collisions",
+        action="store_true",
+        help="Check for ID collisions and fail if found",
+    )
     args = parser.parse_args()
 
-    repo_paths = [Path(r) for r in args.repo]
+    # Determine repo paths from args or config
+    repo_paths = []
+
+    if args.repo:
+        # Use explicit --repo arguments
+        repo_paths = [Path(r) for r in args.repo]
+    else:
+        # Try loading from config
+        config_path = args.config or CONFIG_PATH
+        if config_path.exists():
+            config = load_sources_config()
+            if config:
+                for source in config.get("sources", []):
+                    if source.get("enabled", True) and source.get("type") == "local":
+                        repo_paths.append(Path(source["path"]))
+                print(f"Loaded {len(repo_paths)} repos from config")
+        else:
+            print(f"Error: No --repo specified and config not found: {config_path}")
+            return 1
+
+    if not repo_paths:
+        print("Error: No repositories specified. Use --repo or create config/catalog.sources.json")
+        return 1
+
     output_path = Path(args.out)
 
     # Validate repos exist
+    valid_repos = []
     for repo in repo_paths:
         if not repo.exists():
-            print(f"Error: Repo path does not exist: {repo}")
-            return 1
+            print(f"Warning: Repo path does not exist, skipping: {repo}")
+        else:
+            valid_repos.append(repo)
+
+    if not valid_repos:
+        print("Error: No valid repositories found")
+        return 1
 
     # Extract
-    catalog = extract_catalog(repo_paths, output_path)
+    catalog = extract_catalog(valid_repos, output_path)
+
+    # Check for collisions
+    collisions = detect_collisions(catalog)
+    if collisions:
+        print(f"\nWarning: Found {len(collisions)} ID collisions:")
+        for c in collisions[:10]:
+            print(f"  {c['type']} '{c['id']}' in repos: {', '.join(c['repos'])}")
+        if len(collisions) > 10:
+            print(f"  ... and {len(collisions) - 10} more")
+
+        if args.check_collisions:
+            print("\nFailing due to --check-collisions flag")
+            return 1
 
     # Write output
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -434,13 +542,21 @@ def main():
     with open(warnings_path, "w") as f:
         json.dump(catalog["warnings"], f, indent=2)
 
+    # Write collisions if any
+    if collisions:
+        collisions_path = output_path.parent / "catalog.collisions.json"
+        with open(collisions_path, "w") as f:
+            json.dump(collisions, f, indent=2)
+
     # Print summary
-    print(f"Extracted catalog to {output_path}")
+    print(f"\nExtracted catalog to {output_path}")
     print(f"  Plugins:       {len(catalog['plugins'])}")
     print(f"  Skills:        {len(catalog['skills'])}")
     print(f"  Documents:     {len(catalog['documents'])}")
     print(f"  Relationships: {len(catalog['relationships'])}")
     print(f"  Warnings:      {len(catalog['warnings'])}")
+    if collisions:
+        print(f"  Collisions:    {len(collisions)}")
 
     return 0
 

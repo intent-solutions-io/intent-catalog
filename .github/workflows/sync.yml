@@ -5,9 +5,10 @@ on:
     branches: [master, main]
   pull_request:
     branches: [master, main]
-  schedule:
-    # Run daily at 6 AM UTC
-    - cron: '0 6 * * *'
+  # schedule disabled — burns Actions minutes
+  # schedule:
+  #   # Run daily at 6 AM UTC
+  #   - cron: '0 6 * * *'
   workflow_dispatch:
     inputs:
       dry_run:
